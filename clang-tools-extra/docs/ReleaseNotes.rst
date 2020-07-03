@@ -158,6 +158,11 @@ New checks
   Finds calls to ``NSInvocation`` methods under ARC that don't have proper
   argument object lifetimes.
 
+- New :doc:`openmp-CUDA2OpenMP
+  <clang-tidy/checks/openmp-CUDA2OpenMP>` check.
+
+  FIXME: add release notes.
+
 - New :doc:`readability-use-anyofallof
   <clang-tidy/checks/readability-use-anyofallof>` check.
 

@@ -247,6 +247,7 @@ Clang-Tidy Checks
    `objc-nsinvocation-argument-lifetime <objc-nsinvocation-argument-lifetime.html>`_, "Yes"
    `objc-property-declaration <objc-property-declaration.html>`_, "Yes"
    `objc-super-self <objc-super-self.html>`_, "Yes"
+   `openmp-CUDA2OpenMP <openmp-CUDA2OpenMP.html>`_, "Yes"
    `openmp-exception-escape <openmp-exception-escape.html>`_,
    `openmp-use-default-none <openmp-use-default-none.html>`_,
    `performance-faster-string-find <performance-faster-string-find.html>`_, "Yes"

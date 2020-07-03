@@ -4,6 +4,7 @@ set(LLVM_LINK_COMPONENTS
   )
 
 add_clang_library(clangTidyOpenMPModule
+  CUDA2OpenMPCheck.cpp
   ExceptionEscapeCheck.cpp
   OpenMPTidyModule.cpp
   UseDefaultNoneCheck.cpp

@@ -9,6 +9,7 @@
 #include "../ClangTidy.h"
 #include "../ClangTidyModule.h"
 #include "../ClangTidyModuleRegistry.h"
+#include "CUDA2OpenMPCheck.h"
 #include "ExceptionEscapeCheck.h"
 #include "UseDefaultNoneCheck.h"
 
@@ -20,6 +21,8 @@ namespace openmp {
 class OpenMPModule : public ClangTidyModule {
 public:
   void addCheckFactories(ClangTidyCheckFactories &CheckFactories) override {
+    CheckFactories.registerCheck<CUDA2OpenMPCheck>(
+        "openmp-CUDA2OpenMP");
     CheckFactories.registerCheck<ExceptionEscapeCheck>(
         "openmp-exception-escape");
     CheckFactories.registerCheck<UseDefaultNoneCheck>(
