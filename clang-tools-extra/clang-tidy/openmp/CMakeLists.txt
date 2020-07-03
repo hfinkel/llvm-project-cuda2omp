@@ -22,4 +22,5 @@ clang_target_link_libraries(clangTidyOpenMPModule
   clangAST
   clangASTMatchers
   clangBasic
+  clangLex
   )
