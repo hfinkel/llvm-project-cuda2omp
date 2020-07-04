@@ -38,6 +38,12 @@ void CUDA2OpenMPCheck::registerMatchers(MatchFinder *Finder) {
 
   Finder->addMatcher(callExpr(callee(functionDecl(hasName("::cudaDeviceSynchronize"))))
     .bind("cuda_call_device_sync"), this);
+
+  Finder->addMatcher(callExpr(callee(functionDecl(hasName("::cudaMalloc"))))
+    .bind("cuda_call_malloc"), this);
+
+  Finder->addMatcher(callExpr(callee(functionDecl(hasName("::cudaMemcpy"))))
+    .bind("cuda_call_memcpy"), this);
 }
 
 void CUDA2OpenMPCheck::check(const MatchFinder::MatchResult &Result) {
@@ -62,6 +68,63 @@ void CUDA2OpenMPCheck::check(const MatchFinder::MatchResult &Result) {
     diag(MatchedCall->getBeginLoc(), "remove function call", DiagnosticIDs::Note)
       << FixItHint::CreateRemoval(CharSourceRange::getTokenRange(
                                     MatchedCall->getBeginLoc(),
+                                    MatchedCall->getEndLoc()));
+    return;
+  }
+
+  if (const auto *MatchedCall =
+      Result.Nodes.getNodeAs<CallExpr>("cuda_call_malloc")) {
+
+    auto CommaSrcLoc =
+      utils::lexer::findNextTokenSkippingComments(
+        MatchedCall->getArg(0)->getEndLoc().getLocWithOffset(1),
+        SM, LangOpts)->getLocation();
+
+    diag(MatchedCall->getBeginLoc(), "Replace call to CUDA runtime function");
+    diag(MatchedCall->getBeginLoc(), "replace function call", DiagnosticIDs::Note)
+      << FixItHint::CreateReplacement(CharSourceRange::getCharRange(
+                                        MatchedCall->getBeginLoc(),
+                                        MatchedCall->getArg(0)->getBeginLoc()),
+                                      "*(")
+      << FixItHint::CreateReplacement(CharSourceRange::getCharRange(
+                                        CommaSrcLoc,
+                                        CommaSrcLoc.getLocWithOffset(1)),
+                                      ") = (" + MatchedCall->getArg(0)->getType()->
+                                                  getPointeeType()
+                                                    .getAsString(
+                                                      Result.Context->getPrintingPolicy()) +
+                                      ") std::malloc(");
+    return;
+  }
+
+  if (const auto *MatchedCall =
+      Result.Nodes.getNodeAs<CallExpr>("cuda_call_memcpy")) {
+
+    // FIXME: Should we compare based on number? Accept raw values too?
+    StringRef DirName =
+      cast<EnumConstantDecl>(cast<DeclRefExpr>(MatchedCall->getArg(3))->
+        getDecl())->getName();
+    bool ToHost = DirName == "cudaMemcpyDeviceToHost";
+    StringRef MemExprText =
+      Lexer::getSourceText(
+        CharSourceRange::getTokenRange(MatchedCall->getArg(ToHost ? 1 : 0)->getSourceRange()),
+        SM, LangOpts, 0);
+
+    diag(MatchedCall->getBeginLoc(), "Replace call to CUDA runtime function");
+    diag(MatchedCall->getBeginLoc(), "replace function call", DiagnosticIDs::Note)
+      << FixItHint::CreateInsertion(ToHost ? MatchedCall->getBeginLoc() :
+                                             MatchedCall->getEndLoc().getLocWithOffset(1), // FIXME: After the statement?
+                                    StringRef("\n#pragma omp target ").str() +
+                                    (ToHost ? "exit" : "enter") +
+                                    StringRef(" data map(").str() +
+                                    (ToHost ? "from" : "to") +
+                                    ": " + MemExprText.str() + ")\n")
+      << FixItHint::CreateReplacement(CharSourceRange::getTokenRange(
+                                        MatchedCall->getBeginLoc(),
+                                        MatchedCall->getBeginLoc()),
+                                      "std::memcpy")
+      << FixItHint::CreateRemoval(CharSourceRange::getCharRange(
+                                    MatchedCall->getArg(2)->getEndLoc().getLocWithOffset(1),
                                     MatchedCall->getEndLoc()));
     return;
   }
